@@ -25,7 +25,7 @@ let describeSkipIfNotMultiple = describe.skip;
 let awsS3;
 let awsBucket;
 
-if (config.backends.data === 'multiple' && !process.env.S3_END_TO_END) {
+if (config.backends.data === 'multiple') {
     describeSkipIfNotMultiple = describe;
     // can only get real aws config if not running end-to-end
     const awsConfig = getRealAwsConfig(awsLocation);
