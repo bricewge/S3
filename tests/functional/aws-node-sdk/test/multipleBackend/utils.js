@@ -26,7 +26,9 @@ let awsS3;
 let awsBucket;
 
 if (config.backends.data === 'multiple') {
+    console.log('\n\n--------UTILS FILE\n\n------IN MULTIPLE CONDITIONAL = GREAT');
     describeSkipIfNotMultiple = describe;
+    console.log('\n\n-------DESCRIBE SKIP IF NOT MULTIPLE SHOULD JUST BE DESCRIBE------: ', describeSkipIfNotMultiple);
     const awsConfig = getRealAwsConfig(awsLocation);
     awsS3 = new AWS.S3(awsConfig);
     awsBucket = config.locationConstraints[awsLocation].details.bucketName;
