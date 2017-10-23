@@ -11,11 +11,11 @@ const { config } = require('../../../../../lib/Config');
 
 const memLocation = 'mem-test';
 const fileLocation = 'file-test';
-const awsLocation = 'aws-test';
+const awsLocation = 'awsbackend';
 const awsLocation2 = 'aws-test-2';
 const awsLocationMismatch = 'aws-test-mismatch';
 const awsLocationEncryption = 'aws-test-encryption';
-const azureLocation = 'azuretest';
+const azureLocation = 'azurebackend';
 const azureLocation2 = 'azuretest2';
 const azureLocationMismatch = 'azuretestmismatch';
 const versioningEnabled = { Status: 'Enabled' };
@@ -27,7 +27,6 @@ let awsBucket;
 
 if (config.backends.data === 'multiple') {
     describeSkipIfNotMultiple = describe;
-    // can only get real aws config if not running end-to-end
     const awsConfig = getRealAwsConfig(awsLocation);
     awsS3 = new AWS.S3(awsConfig);
     awsBucket = config.locationConstraints[awsLocation].details.bucketName;
