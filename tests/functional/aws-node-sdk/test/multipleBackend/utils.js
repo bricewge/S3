@@ -9,15 +9,15 @@ const azure = require('azure-storage');
 const { getRealAwsConfig } = require('../support/awsConfig');
 const { config } = require('../../../../../lib/Config');
 
-const memLocation = 'mem-test';
-const fileLocation = 'file-test';
-const awsLocation = 'awsbackend';
-const awsLocation2 = 'aws-test-2';
-const awsLocationMismatch = 'aws-test-mismatch';
-const awsLocationEncryption = 'aws-test-encryption';
-const azureLocation = 'azurebackend';
-const azureLocation2 = 'azuretest2';
-const azureLocationMismatch = 'azuretestmismatch';
+const memLocation = 'scality-internal-mem';
+const fileLocation = 'scality-internal-file';
+const awsLocation = 'aws-backend';
+const awsLocation2 = 'aws-backend-2';
+const awsLocationMismatch = 'aws-backend-mismatch';
+const azureLocation = 'azure-backend';
+const azureLocation2 = 'azure-backend-2';
+const azureLocationMismatch = 'azure-backend-mismatch';
+const awsLocationEncryption = 'aws-backend-encryption';
 const versioningEnabled = { Status: 'Enabled' };
 const versioningSuspended = { Status: 'Suspended' };
 const awsTimeout = 10000;
@@ -26,9 +26,7 @@ let awsS3;
 let awsBucket;
 
 if (config.backends.data === 'multiple') {
-    console.log('\n\n--------UTILS FILE\n\n------IN MULTIPLE CONDITIONAL = GREAT');
     describeSkipIfNotMultiple = describe;
-    console.log('\n\n-------DESCRIBE SKIP IF NOT MULTIPLE SHOULD JUST BE DESCRIBE------: ', describeSkipIfNotMultiple);
     const awsConfig = getRealAwsConfig(awsLocation);
     awsS3 = new AWS.S3(awsConfig);
     awsBucket = config.locationConstraints[awsLocation].details.bucketName;
