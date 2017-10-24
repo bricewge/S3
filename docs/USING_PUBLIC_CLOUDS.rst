@@ -212,3 +212,138 @@ top, and then you should see something like this:
 
 .. figure:: ../res/aws-console-versioning-enabled.png
    :alt: AWS Console showing versioning enabled
+
+Microsoft Azure as a backend
+----------------------------
+
+From the MS Azure Console
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From your Stoage Account dashboard, create a container where you will host your
+data for this new location constraint.
+
+You will also need to generate a SAS (Shared Access Signature) from the Console.
+This can be done from your Storage Account dashboard, under "Settings, then
+"Shared access signature". Your SAS will expire after some time. You can give it
+different permissions.
+Once you click "Generate SAS", a "SAS token" and a "Blob service SAS URL" will
+appear. You want to use the **SAS token without the initial question mark**.
+
+In this example, our container will be name ``zenkontainer``, and will belong to
+the ``zenkomeetups`` Storage Account.
+
+From the CloudServer repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+locationConfig.json
+^^^^^^^^^^^^^^^^^^^
+
+Edit this file to add a new region, which should describe the MS Azure hosted
+container you'll be writing your data to. There are a few configurable options
+here:
+
+- :code:`type` : set to :code:`azure` to indicate this region is hosted in MS Azure;
+- :code:`legacyAwsBehavior` : set to :code:`true` to indicate this region should
+  behave like AWS S3 :code:`us-east-1` region, set to :code:`false` to indicate
+  this region should behave like any other AWS S3 region (in the case of MS Azure
+  hosted data, this is mostly relevant for the format of errors);
+- :code:`azureBlobEndpoint` : set to your storage account's endpoint, usually
+  :code:`https://{{storageAccountName}}.blob.core.windows.name`;
+- :code:`azureContainerName` : set to an *existing container* in your MS Azure
+  storage account; this is the container that will host all the data written in
+  this region;
+- :code:`bucketMatch` : set to :code:`true` if you want your object name to be
+  the same in your local bucket and your MS Azure container; set to
+  :code:`false` if you want your object name to be of the form
+  :code:`{{localBucketName}}/{{objectname}}` in your MS Azure container ;
+- :code:`azureBlobSAS` : provide a generated Shared Access Signature *without*
+  the initial question mark.
+
+.. code:: json
+
+    (...)
+    "azure-test": {
+	"type": "azure",
+        "legacyAwsBehavior": false,
+        "details": {
+          "azureBlobEndpoint": "https://zenkomeetups.blob.core.windows.net/",
+	  "bucketMatch": true,
+	  "azureBlobSAS": "sv=2017-04-17&ss=b&srt=o&sp=l&se=2017-10-25T14:51:55Z&st=2017-10-25T12:51:55Z&spr=https&sig=98sQIRPxvHerHeUvlCoq0cpSpf0lZK6qiZn9kPFHpeM%U8",
+	  "azureContainerName": "zenkontainer"
+	}
+    },
+    (...)
+
+.. WARNING::
+   If you set :code:`bucketMatch` to :code:`true`, we strongly advise for having
+   only one local bucket per MS Azure location. Indeed, since your objects names
+   won't be prefixed by the local bucket name in the MS Azure container, you
+   could create inconsistencies seamlessly by putting two objects with the same
+   name in two different local buckets, but since they are ultimately saved in
+   the same MS Azure container, the most recent one would overwrite the earlier
+   one, as the namespace will conflict.
+
+Start the server with the ability to write to MS Azure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Inside the repository, once all the files have been edited, you should be able
+to start the server and start testing pushing to MS Azure.
+
+.. code:: shell
+
+   # Start the server locally
+   $> S3DATA=multiple npm start
+
+Run the server as a docker container with the ability to write to MS Azure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mount all the files that have been edited to override defaults, and do a
+standard Docker run; then you can start testing pushing to MS Azure.
+
+.. code:: shell
+
+   # Start the server in a Docker container
+   $> sudo docker run -d --name CloudServer \
+   -v $(pwd)/data:/usr/src/app/localData \
+   -v $(pwd)/metadata:/usr/src/app/localMetadata \
+   -v $(pwd)/locationConfig.json:/usr/src/app/locationConfig.json \
+   -v $(pwd)/conf/authdata.json:/usr/src/app/conf/authdata.json \
+   -e S3DATA=multiple -e ENDPOINT=http://localhost -p 8000:8000
+   -d scality/s3server
+
+Testing: put an object to MS Azure using CloudServer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to start testing pushing to MS Azure, you will need to create a local
+bucket in the MS Azure region - this local bucket will only store the metadata
+locally, while both the data and the metadata will be stored on MS Azure.
+This example is based on all our previous steps.
+
+.. code:: shell
+
+   # Create a local bucket hosting data in MS Azure
+   $> s3cmd --host=127.0.0.1:8000 mb s3://zenkontainer --region=azure-test
+   # Put an object to MS Azure, and store the metadata locally
+   $> s3cmd --host=127.0.0.1:8000 put /etc/hosts s3://zenkontainer/testput
+    upload: '/etc/hosts' -> 's3://zenkontainer/testput'  [1 of 1]
+     330 of 330   100% in    0s   380.87 B/s  done
+   # List locally to check you have the metadata
+   $> s3cmd --host=127.0.0.1:8000 ls s3://zenkobucket
+    2017-10-24 14:38       330   s3://zenkontainer/testput
+
+Then, from the MS Azure Console, if you go into your container, you should see
+your newly uploaded object:
+
+.. figure:: ../res/azure-console-successful-put.png
+   :alt: MS Azure Console upload example
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+Make sure your :code:`~/.s3cfg` file has credentials matching your local
+CloudServer credentials defined in :code:`conf/authdata.json`. By default, the
+access key is :code:`accessKey1` and the secret key is :code:`verySecretKey1`.
+For more informations, refer to our template `~/.s3cfg <./CLIENTS/#s3cmd>`__ .
+
+Pre existing objects in your MS Azure container can unfortunately not be
+accessed by CloudServer at this time.
