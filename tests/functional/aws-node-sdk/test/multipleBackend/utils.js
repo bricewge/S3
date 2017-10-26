@@ -25,6 +25,7 @@ let describeSkipIfNotMultiple = describe;
 let awsS3;
 let awsBucket;
 
+console.log('\n\n--------CONFIG??????? ', config);
 if (config.backends.data === 'multiple') {
     describeSkipIfNotMultiple = describe;
     const awsConfig = getRealAwsConfig(awsLocation);
