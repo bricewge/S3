@@ -21,7 +21,7 @@ const awsLocationEncryption = 'awsbackendencryption';
 const versioningEnabled = { Status: 'Enabled' };
 const versioningSuspended = { Status: 'Suspended' };
 const awsTimeout = 10000;
-let describeSkipIfNotMultiple = describe;
+let describeSkipIfNotMultiple = describe.skip;
 let awsS3;
 let awsBucket;
 

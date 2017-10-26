@@ -1,7 +1,7 @@
 const assert = require('assert');
 const async = require('async');
 
-const metadata = require('../../../../../lib/metadata');
+const metadata = require('../../../../../../lib/metadata/wrapper');
 
 const BucketUtility = require('../../../lib/utility/bucket-util');
 const withV4 = require('../../support/withV4');
@@ -27,7 +27,7 @@ const nonExistingId = process.env.AWS_ON_AIR ?
     'MhhyTHhmZ4cxSi4Y9SMe5P7UJAz7HLJ9' :
     '3939393939393939393936493939393939393939756e6437';
 
-console.log('\n\n------METADATA????? ', metadata);
+// console.log('\n\n------METADATA????? ', metadata);
 describe('Multiple backend delete object from Azure',
 function testSuite() {
     this.timeout(250000);
