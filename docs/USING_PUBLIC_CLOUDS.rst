@@ -16,6 +16,14 @@ supported public cloud backends:
 For all Public Cloud backends, you'll have to do some editing inside the
 repository, and some editing from the Public Cloud Console.
 
+.. IMPORTANT::
+   CloudServer also enables you to have, within the same local bucket, objects
+   stored to different backends (both private and public clouds, for example).
+   This is an advanced usecase, and it will require that you set your backends
+   as explained below. Once this is done, you may refer to the
+   `backend configuration at object level <#backend-configuration-at-object-level>`__
+   section of this document.
+
 AWS S3 as a backend
 -------------------
 
@@ -347,3 +355,105 @@ For more informations, refer to our template `~/.s3cfg <./CLIENTS/#s3cmd>`__ .
 
 Pre existing objects in your MS Azure container can unfortunately not be
 accessed by CloudServer at this time.
+
+
+Backend configuration at object level
+-------------------------------------
+
+If you configured regions in public clouds as explained above, you may create
+local buckets that will host both the data and the metadata for local objects,
+and the metadata only for objects hosted in public clouds.
+This is done by adding a custom header : :code:`x-amz-meta-scal-location-constraint`
+at object PUT time, and setting the value of that header to the region name you
+wish to store the objects to.
+
+.. WARNING::
+   We strongly advise that you set the :code:`bucketMatch` option of your public
+   locations to :code:`false` in your :code:`locationConfig.json`, to prevent
+   any namespace conflict by prefixing your objects in the public clouds with
+   the local bucket name.
+
+Testing: create a local bucket with objects hosted in different backends
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Context and reminders
+^^^^^^^^^^^^^^^^^^^^^
+
+In this example, we'll have a local bucket :code:`multibackend` store objects
+locally, to MS Azure, and to AWS S3. Contrary to the examples in the above
+sections, the parameter :code:`bucketMatch` is set to :code:`false` for both
+the :code:`azure` and the :code:`aws` regions, which point to the same bucket
+and container as before otherwise.
+This is what our :code:`locationConfig.json` looks like:
+
+.. code:: json
+
+   {
+       "us-east-1": {
+           "type": "file",
+           "legacyAwsBehavior": true,
+           "details": {}
+       },
+       "aws": {
+           "type": "aws_s3",
+           "legacyAwsBehavior": false,
+           "details": {
+               "awsEndpoint": "s3.amazonaws.com",
+               "bucketName": "zenkobucket",
+               "bucketMatch": false,
+               "credentialsProfile": "zenko"
+           }
+       },
+       "azure": {
+           "type": "azure",
+           "legacyAwsBehavior": false,
+           "details": {
+             "azureBlobEndpoint": "https://zenkomeetups.blob.core.windows.net/",
+             "bucketMatch": false,
+             "azureBlobSAS": "sv=2017-04-17&ss=b&srt=o&sp=l&se=2017-10-25T14:51:55Z&st=2017-10-25T12:51:55Z&spr=https&sig=98sQIRPxvHerHeUvlCoq0cpSpf0lZK6qiZn9kPFHpeM%U8",
+             "azureContainerName": "zenkontainer"
+           }
+       }
+   }
+
+Example test
+^^^^^^^^^^^^
+
+.. code:: shell
+
+   # Create local bucket (no region specified, defaults to us-east-1)
+   $> s3cmd --host=127.0.0.1:8000 mb s3://multibackend
+    Bucket 's3://multibackend/' created
+   # Put an object hosted locally in multibackend bucket
+   $> s3cmd --config=.s3cfg --host=127.0.0.1:8000 put /etc/hosts s3://multibackend/localhosts
+    upload: '/etc/hosts' -> 's3://multibackend/localhosts'  [1 of 1]
+     330 of 330   100% in    0s     8.84 kB/s  done
+   # Put an object hosted on MS Azure in multibackend bucket
+   $> s3cmd --host=127.0.0.1:8000 put /etc/hosts s3://multibackend/azurehosts --add-header x-amz-meta-scal-location-constraint:azure
+    upload: '/etc/hosts' -> 's3://multibackend/azurehosts'  [1 of 1]
+     330 of 330   100% in    0s     229.43 B/s  done
+   # Put an object hosted on AWS S3 in multibackend bucket
+   $> s3cmd --host=127.0.0.1:8000 put /etc/hosts s3://multibackend/awshosts --add-header x-amz-meta-scal-location-constraint:aws
+    upload: '/etc/hosts' -> 's3://multibackend/awshosts'  [1 of 1]
+     330 of 330   100% in    0s     453.33 B/s  done
+   # List locally to see you have all objects metadata
+   $> s3cmd --host=127.0.0.1:8000 ls s3://multibackend
+    s3cmd --host=127.0.0.1:8000 ls s3://multibackend
+    2017-10-26 09:53       330   s3://multibackend/awshosts
+    2017-10-26 09:53       330   s3://multibackend/azurehosts
+    2017-10-26 09:53       330   s3://multibackend/localhosts
+
+Check on the MS Azure and AWS S3 Consoles to see that you have your objects in
+your bucket/container, prefixed with the local bucket name.
+
+.. figure:: ../res/azure-console-multibackend-prefix.png
+   :alt: MS Azure Console upload example with prefix shown as folder
+
+.. figure:: ../res/azure-console-prefix-folder.png
+   :alt: MS Azure Console upload example inside prefix folder
+
+.. figure:: ../res/aws-console-multibackend-prefix.png
+   :alt: AWS S3 Console upload example with prefix shown as folder
+
+.. figure:: ../res/aws-console-prefix-folder.png
+   :alt: AWS S3 Console upload example inside prefix folder
