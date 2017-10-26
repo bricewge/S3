@@ -132,7 +132,7 @@ const results = [
 describe('Testing Config.js function: ', () => {
     results.forEach(result => {
         it(`should return ${result.boolExpected} if source location ` +
-        `constriant === ${result.sourceLocationConstraintName} ` +
+        `constraint === ${result.sourceLocationConstraintName} ` +
         'and destination location constraint ===' +
         ` ${result.destLocationConstraintName} and ${result.description}`,
         done => {
